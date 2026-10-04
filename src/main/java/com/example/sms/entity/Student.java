@@ -35,9 +35,10 @@ public class Student {
     @Column(nullable = false)
     private LocalDate dateOfBirth;
 
-    // Name of the uploaded profile image file (stored on disk, not in the DB)
-//    @Column(length = 255)
-//    private String profileImageName;
+    // Only the generated file name is stored in DB.
+    // Actual image is stored on disk.
+    @Column(name = "profile_image_name", length = 255)
+    private String profileImageName;
 
     // Many Students -> One Department
     @ManyToOne(fetch = FetchType.LAZY)

@@ -15,5 +15,5 @@ public class StudentResponseDto {
     private String email;
     private String phoneNumber;
     private LocalDate dateOfBirth;
-
+    private String profileImageUrl;
 }
