@@ -113,99 +113,62 @@ public class StudentController {
     // =================================================================================================================
 
     @PutMapping("/{studentId}/assign-department/{departmentId}")
-    public ResponseEntity<StudentResponseDto> assignDepartmentToStudent(
-            @PathVariable Long studentId,
-            @PathVariable Long departmentId) {
-
+    public ResponseEntity<StudentResponseDto> assignDepartmentToStudent(@PathVariable Long studentId, @PathVariable Long departmentId) {
         return ResponseEntity.ok(studentService.assignDepartmentToStudent(studentId, departmentId));
     }
 
 
     @PostMapping("/{studentId}/enroll-courses/{courseId}")
-    public ResponseEntity<StudentResponseDto> enrollStudentInCourse(
-            @PathVariable Long studentId,
-            @PathVariable Long courseId) {
-
+    public ResponseEntity<StudentResponseDto> enrollStudentInCourse(@PathVariable Long studentId, @PathVariable Long courseId) {
         return ResponseEntity.ok(studentService.enrollStudentInCourse(studentId, courseId));
     }
 
 
     @DeleteMapping("/{studentId}/unenroll-courses/{courseId}")
-    public ResponseEntity<StudentResponseDto> unenrollStudentFromCourse(
-            @PathVariable Long studentId,
-            @PathVariable Long courseId) {
-
+    public ResponseEntity<StudentResponseDto> unenrollStudentFromCourse(@PathVariable Long studentId, @PathVariable Long courseId) {
         return ResponseEntity.ok(studentService.unenrollStudentFromCourse(studentId, courseId));
     }
+
 
     // =================================================================================================================
     // MULTIPART: PROFILE IMAGE
     // =================================================================================================================
 
     // UPLOAD / REPLACE PROFILE IMAGE
-    @PostMapping(
-            value = "/{studentId}/profile-image",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<String> uploadProfileImage(
-            @PathVariable Long studentId,
-            @RequestParam("file") MultipartFile file) {
+    @PostMapping(value = "/{studentId}/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadProfileImage(@PathVariable Long studentId, @RequestParam("file") MultipartFile file) {
 
-        log.info(
-                "Received request to upload profile image for student id: {}",
-                studentId
-        );
+        log.info("Received request to upload profile image for student id: {}", studentId);
 
-        String imageUrl =
-                studentService.uploadProfileImage(
-                        studentId,
-                        file
-                );
+        String imageUrl = studentService.uploadProfileImage(studentId, file);
 
-        log.info(
-                "Profile image uploaded successfully for student id: {}",
-                studentId
-        );
+        log.info("Profile image uploaded successfully for student id: {}", studentId);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(imageUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(imageUrl);
     }
 
 
     // GET PROFILE IMAGE
     @GetMapping("/{studentId}/profile-image")
-    public ResponseEntity<Resource> getProfileImage(
-            @PathVariable Long studentId) {
+    public ResponseEntity<Resource> getProfileImage(@PathVariable Long studentId) {
 
-        log.debug(
-                "Received request to get profile image for student id: {}",
-                studentId
-        );
+        log.debug("Received request to get profile image for student id: {}", studentId);
 
-        Resource resource =
-                studentService.getProfileImage(studentId);
+        Resource resource = studentService.getProfileImage(studentId);
 
-        MediaType mediaType =
-                MediaType.APPLICATION_OCTET_STREAM;
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
 
         try {
-
-            String contentType =
-                    resource.getURL()
+            String contentType = resource.getURL()
                             .openConnection()
                             .getContentType();
 
             if (contentType != null) {
-                mediaType =
-                        MediaType.parseMediaType(contentType);
+                mediaType = MediaType.parseMediaType(contentType);
             }
 
         } catch (Exception e) {
-
-            log.warn(
-                    "Could not determine content type for profile image"
-            );
+            log.warn("Could not determine content type for profile image");
         }
 
         return ResponseEntity.ok()
@@ -222,20 +185,13 @@ public class StudentController {
 
     // DELETE PROFILE IMAGE
     @DeleteMapping("/{studentId}/profile-image")
-    public ResponseEntity<Void> deleteProfileImage(
-            @PathVariable Long studentId) {
+    public ResponseEntity<Void> deleteProfileImage(@PathVariable Long studentId) {
 
-        log.info(
-                "Received request to delete profile image for student id: {}",
-                studentId
-        );
+        log.info("Received request to delete profile image for student id: {}", studentId);
 
         studentService.deleteProfileImage(studentId);
 
-        log.info(
-                "Profile image deleted successfully for student id: {}",
-                studentId
-        );
+        log.info("Profile image deleted successfully for student id: {}", studentId);
 
         return ResponseEntity.noContent().build();
     }

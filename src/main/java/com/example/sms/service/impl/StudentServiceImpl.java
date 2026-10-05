@@ -264,49 +264,37 @@ public class StudentServiceImpl implements StudentService {
 
 
     // =================================================================================================================
-// MULTIPART: PROFILE IMAGE
-// =================================================================================================================
+    // MULTIPART: PROFILE IMAGE
+    // =================================================================================================================
 
     // UPLOAD / REPLACE PROFILE IMAGE
     @Override
     @Transactional
-    public String uploadProfileImage(Long studentId,
-            MultipartFile file) {
+    public String uploadProfileImage(Long studentId, MultipartFile file) {
 
-        log.info(
-                "Uploading profile image for student id: {}",
-                studentId
-        );
+        log.info("Uploading profile image for student id: {}", studentId);
 
         // 1. Find student
         Student student = findStudentById(studentId);
 
         // 2. Keep old image name
-        String oldImageName =
-                student.getProfileImageName();
+        String oldImageName = student.getProfileImageName();
 
         // 3. Store new image
-        String newImageName =
-                fileStorageService.store(file);
+        String newImageName = fileStorageService.store(file);
 
         try {
-
             // 4. Update database with new image name
             student.setProfileImageName(newImageName);
 
             studentRepository.save(student);
 
             // 5. Delete old image after successful update
-            if (oldImageName != null &&
-                    !oldImageName.isBlank()) {
-
+            if (oldImageName != null && !oldImageName.isBlank()) {
                 fileStorageService.delete(oldImageName);
             }
 
-            log.info(
-                    "Profile image uploaded successfully for student id: {}",
-                    studentId
-            );
+            log.info("Profile image uploaded successfully for student id: {}", studentId);
 
             // Return public API URL
             return "/api/v1/students/"
@@ -314,13 +302,11 @@ public class StudentServiceImpl implements StudentService {
                     + "/profile-image";
 
         } catch (RuntimeException e) {
-
             /*
              * If database update fails after the new file
              * was created, remove the new file.
              */
             fileStorageService.delete(newImageName);
-
             throw e;
         }
     }
@@ -330,27 +316,17 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public Resource getProfileImage(Long studentId) {
 
-        log.debug(
-                "Fetching profile image for student id: {}",
-                studentId
-        );
+        log.debug("Fetching profile image for student id: {}", studentId);
 
         // 1. Find student
-        Student student =
-                findStudentById(studentId);
+        Student student = findStudentById(studentId);
 
         // 2. Get image filename
-        String imageName =
-                student.getProfileImageName();
+        String imageName = student.getProfileImageName();
 
         // 3. Check image exists
-        if (imageName == null ||
-                imageName.isBlank()) {
-
-            throw new ResourceNotFoundException(
-                    "Profile image not found for student : "
-                            + studentId
-            );
+        if (imageName == null || imageName.isBlank()) {
+            throw new ResourceNotFoundException("Profile image not found for student : " + studentId);
         }
 
         // 4. Load image
@@ -369,21 +345,14 @@ public class StudentServiceImpl implements StudentService {
         );
 
         // 1. Find student
-        Student student =
-                findStudentById(studentId);
+        Student student = findStudentById(studentId);
 
         // 2. Get image filename
-        String imageName =
-                student.getProfileImageName();
+        String imageName = student.getProfileImageName();
 
         // 3. Check image exists
-        if (imageName == null ||
-                imageName.isBlank()) {
-
-            throw new ResourceNotFoundException(
-                    "Profile image not found for student : "
-                            + studentId
-            );
+        if (imageName == null || imageName.isBlank()) {
+            throw new ResourceNotFoundException("Profile image not found for student : " + studentId);
         }
 
         // 4. Delete physical file
@@ -394,13 +363,10 @@ public class StudentServiceImpl implements StudentService {
 
         studentRepository.save(student);
 
-        log.info(
-                "Profile image deleted successfully for student id: {}",
-                studentId
-        );
+        log.info("Profile image deleted successfully for student id: {}", studentId);
     }
 
-    // HELPER METHODS
+    // HELPER METHODS===================================================================================================
 
     // Helper method to find student
     public Student findStudentById(Long id) {

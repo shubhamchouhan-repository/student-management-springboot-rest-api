@@ -41,20 +41,12 @@ public class FileStorageServiceImpl implements FileStorageService {
                 .normalize();
 
         try {
-
             Files.createDirectories(storageLocation);
 
-            log.info(
-                    "Profile image storage directory: {}",
-                    storageLocation
-            );
+            log.info("Profile image storage directory: {}", storageLocation);
 
         } catch (IOException e) {
-
-            throw new FileStorageException(
-                    "Could not create file storage directory",
-                    e
-            );
+            throw new FileStorageException("Could not create file storage directory", e);
         }
     }
 
@@ -69,40 +61,27 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         String contentType = file.getContentType();
 
-        String extension =
-                ALLOWED_CONTENT_TYPES.get(contentType);
+        String extension = ALLOWED_CONTENT_TYPES.get(contentType);
 
-        String fileName =
-                UUID.randomUUID() + extension;
+        String fileName = UUID.randomUUID() + extension;
 
-        Path targetLocation =
-                storageLocation.resolve(fileName);
+        Path targetLocation = storageLocation.resolve(fileName);
 
         try {
-
             Files.copy(
                     file.getInputStream(),
                     targetLocation
             );
 
-            log.info(
-                    "Profile image stored successfully: {}",
-                    fileName
-            );
+            log.info("Profile image stored successfully: {}", fileName);
 
             return fileName;
 
         } catch (IOException e) {
 
-            log.error(
-                    "Failed to store profile image",
-                    e
-            );
+            log.error("Failed to store profile image", e);
 
-            throw new FileStorageException(
-                    "Could not store profile image",
-                    e
-            );
+            throw new FileStorageException("Could not store profile image", e);
         }
     }
 
@@ -127,30 +106,20 @@ public class FileStorageServiceImpl implements FileStorageService {
              * ../../some-important-file
              */
             if (!filePath.startsWith(storageLocation)) {
-
-                throw new FileStorageException(
-                        "Invalid file path"
-                );
+                throw new FileStorageException("Invalid file path");
             }
 
-            Resource resource =
-                    new UrlResource(filePath.toUri());
+            Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists()) {
-
-                throw new FileStorageException(
-                        "Profile image not found: " + fileName
-                );
+                throw new FileStorageException("Profile image not found: " + fileName);
             }
 
             return resource;
 
         } catch (MalformedURLException e) {
 
-            throw new FileStorageException(
-                    "Could not load profile image",
-                    e
-            );
+            throw new FileStorageException("Could not load profile image", e);
         }
     }
 
@@ -161,49 +130,29 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void delete(String fileName) {
 
-        if (fileName == null ||
-                fileName.isBlank()) {
-
+        if (fileName == null || fileName.isBlank()) {
             return;
         }
 
         try {
-
             Path filePath = storageLocation
                     .resolve(fileName)
                     .normalize();
 
             if (!filePath.startsWith(storageLocation)) {
-
-                throw new FileStorageException(
-                        "Invalid file path"
-                );
+                throw new FileStorageException("Invalid file path");
             }
 
-            boolean deleted =
-                    Files.deleteIfExists(filePath);
+            boolean deleted = Files.deleteIfExists(filePath);
 
             if (deleted) {
-
-                log.info(
-                        "Profile image deleted: {}",
-                        fileName
-                );
-
+                log.info("Profile image deleted: {}", fileName);
             } else {
-
-                log.warn(
-                        "Profile image not found: {}",
-                        fileName
-                );
+                log.warn("Profile image not found: {}", fileName);
             }
 
         } catch (IOException e) {
-
-            throw new FileStorageException(
-                    "Could not delete profile image",
-                    e
-            );
+            throw new FileStorageException("Could not delete profile image", e);
         }
     }
 
@@ -214,29 +163,17 @@ public class FileStorageServiceImpl implements FileStorageService {
     private void validateFile(MultipartFile file) {
 
         if (file == null || file.isEmpty()) {
-
-            throw new InvalidFileException(
-                    "Profile image is required"
-            );
+            throw new InvalidFileException("Profile image is required");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-
-            throw new InvalidFileException(
-                    "Profile image must not exceed 5 MB"
-            );
+            throw new InvalidFileException("Profile image must not exceed 5 MB");
         }
 
-        String contentType =
-                file.getContentType();
+        String contentType = file.getContentType();
 
-        if (contentType == null ||
-                !ALLOWED_CONTENT_TYPES
-                        .containsKey(contentType)) {
-
-            throw new InvalidFileException(
-                    "Only JPG, PNG and WEBP images are allowed"
-            );
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.containsKey(contentType)) {
+            throw new InvalidFileException("Only JPG, PNG and WEBP images are allowed");
         }
     }
 }
