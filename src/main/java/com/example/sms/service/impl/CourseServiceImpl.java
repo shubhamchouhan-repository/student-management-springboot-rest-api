@@ -87,6 +87,7 @@ public class CourseServiceImpl implements CourseService {
 
     // DELETE
     @Override
+    @Transactional
     public void deleteCourse(Long id) {
         log.info("Deleting course with ID: {}", id);
 
@@ -97,6 +98,7 @@ public class CourseServiceImpl implements CourseService {
         }
 
         courseRepository.delete(course);
+        log.info("Deleted course with ID: {}", id);
     }
 
 
