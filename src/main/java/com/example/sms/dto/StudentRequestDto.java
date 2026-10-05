@@ -1,11 +1,15 @@
 package com.example.sms.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class StudentRequestDto {
 
     @NotBlank(message = "First name is required")
