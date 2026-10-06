@@ -18,4 +18,6 @@ public class CourseResponseDto {
     private String description;
     private Integer credits;
     private DepartmentSummaryDto department;
+    private Integer capacity;
+    private Integer enrolledCount;
 }

@@ -2,6 +2,7 @@ package com.example.sms.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -13,12 +14,8 @@ import java.util.Set;
 @Getter
 @AllArgsConstructor
 @RequiredArgsConstructor
-@Builder
+@SuperBuilder
 public class Student extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Column(nullable = false, length = 50)
     private String firstName;
@@ -34,6 +31,15 @@ public class Student extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDate dateOfBirth;
+
+    // @Embedded pulls Address's columns straight into the students table
+    // (address_line/street, city, state, pincode, country). We override
+    // "street" here to show how a clashing/generic embeddable column name
+    // can be renamed per usage site without touching the Address class.
+    @Embedded
+    @AttributeOverride(name = "street", column = @Column(name = "address_line", length = 100))
+    private Address address;
+
 
     // Only the generated file name is stored in DB.
     // Actual image is stored on disk.

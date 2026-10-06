@@ -4,6 +4,9 @@ import com.example.sms.dto.StudentPatchRequestDto;
 import com.example.sms.dto.StudentRequestDto;
 import com.example.sms.dto.StudentResponseDto;
 import com.example.sms.service.StudentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ import org.springframework.data.domain.Page;
 @RestController
 @RequestMapping("/api/v1/students")
 @Slf4j
+@Tag(name = "Student", description = "Student CRUD, search, and photo upload")
 public class StudentController {
 
     private final StudentService studentService;
@@ -32,20 +36,26 @@ public class StudentController {
     }
 
 
-    @PostMapping("/create")
+    // CREATE
+    @Operation(summary = "Create a student")
+    @ApiResponse(responseCode = "201", description = "Student created")
+    @ApiResponse(responseCode = "400", description = "Validation failed")
+    @ApiResponse(responseCode = "409", description = "Email already in use")
+    @PostMapping()
     public ResponseEntity<StudentResponseDto> createStudent(@Valid @RequestBody StudentRequestDto studentRequestDto) {
 
         log.info("Received request to create student");
 
         StudentResponseDto response = studentService.createStudent(studentRequestDto);
 
-        log.info("Student created successfully with id: {}", response.getId());
 
+        log.info("Student created successfully with id: {}", response.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 
-    @GetMapping("get-all")
+    // GET ALL
+    @GetMapping()
     public ResponseEntity<Page<StudentResponseDto>> getAllStudents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -56,7 +66,10 @@ public class StudentController {
     }
 
 
-    @GetMapping("get/{id}")
+    // GET BY ID
+    @Operation(summary = "Get a student by id")
+    @ApiResponse(responseCode = "404", description = "Student not found")
+    @GetMapping("/{id}")
     public ResponseEntity<StudentResponseDto> getStudentById(@PathVariable Long id) {
 
         log.debug("Received request to fetch student with id: {}", id);
@@ -69,7 +82,9 @@ public class StudentController {
     }
 
 
-    @PutMapping("/update/{id}")
+    // UPDATE
+    @Operation(summary = "Update a student")
+    @PutMapping("/{id}")
     public ResponseEntity<StudentResponseDto> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentRequestDto studentRequestDto) {
 
         log.info("Received request to update student with id: {}", id);
@@ -82,7 +97,8 @@ public class StudentController {
     }
 
 
-    @PatchMapping("/patch/{id}")
+    // PATCH
+    @PatchMapping("/{id}")
     public ResponseEntity<StudentResponseDto> patchStudent(@PathVariable Long id, @Valid @RequestBody StudentPatchRequestDto studentPatchRequestDto) {
 
         log.info("Received request to partially update student with id: {}", id);
@@ -95,7 +111,9 @@ public class StudentController {
     }
 
 
-    @DeleteMapping("/delete/{id}")
+    // DELETE
+    @Operation(summary = "Delete a student")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void>  deleteStudent(@PathVariable Long id) {
 
         log.info("Received request to delete student with id: {}", id);
@@ -135,6 +153,8 @@ public class StudentController {
     // =================================================================================================================
 
     // UPLOAD / REPLACE PROFILE IMAGE
+    @Operation(summary = "Upload or replace a student's photo",
+            description = "multipart/form-data with a single field named 'file'. Max 5MB.")
     @PostMapping(value = "/{studentId}/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> uploadProfileImage(@PathVariable Long studentId, @RequestParam("file") MultipartFile file) {
 

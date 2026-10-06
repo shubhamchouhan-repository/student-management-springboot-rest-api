@@ -3,6 +3,7 @@ package com.example.sms.service.impl;
 import com.example.sms.dto.StudentPatchRequestDto;
 import com.example.sms.dto.StudentRequestDto;
 import com.example.sms.dto.StudentResponseDto;
+import com.example.sms.entity.Address;
 import com.example.sms.entity.Course;
 import com.example.sms.entity.Department;
 import com.example.sms.entity.Student;
@@ -29,7 +30,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -52,6 +56,7 @@ public class StudentServiceImpl implements StudentService {
     public StudentResponseDto createStudent(StudentRequestDto studentRequestDto) {
 
         log.info("Creating student with email: {}", studentRequestDto.getEmail());
+
         if (studentRepository.existsByEmail(studentRequestDto.getEmail())) {
             log.warn("Student creation failed. Email already exists: {}", studentRequestDto.getEmail());
 
@@ -59,6 +64,14 @@ public class StudentServiceImpl implements StudentService {
         }
 
         Student student = dtoToEntity(studentRequestDto);
+
+        if (studentRequestDto.getDepartmentId() != null) {
+            student.setDepartment(findDepartmentById(studentRequestDto.getDepartmentId()));
+        }
+        if (studentRequestDto.getCourseIds() != null && !studentRequestDto.getCourseIds().isEmpty()) {
+            student.setCourses(resolveCourses(studentRequestDto.getCourseIds()));
+        }
+
         Student savedStudent = studentRepository.save(student);
 
         log.info("Student created successfully with id: {}", savedStudent.getId());
@@ -70,6 +83,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Cacheable(value = "students", key = "#id")
     public StudentResponseDto getStudentById(Long id) {
+
         log.debug("Fetching student with id: {}", id);
         Student student = findStudentById(id);
 
@@ -119,9 +133,18 @@ public class StudentServiceImpl implements StudentService {
         existingStudent.setPhoneNumber(studentRequestDto.getPhoneNumber());
         existingStudent.setDateOfBirth(studentRequestDto.getDateOfBirth());
 
+        existingStudent.setDepartment(studentRequestDto.getDepartmentId() != null
+                ? findDepartmentById(studentRequestDto.getDepartmentId())
+                : null);
+
+        if (studentRequestDto.getCourseIds() != null) {
+            existingStudent.setCourses(resolveCourses(studentRequestDto.getCourseIds()));
+        }
+
         Student updatedStudent = studentRepository.save(existingStudent);
 
         log.info("Student updated successfully with id: {}", updatedStudent.getId());
+
         return entityToDto(updatedStudent);
     }
 
@@ -195,6 +218,7 @@ public class StudentServiceImpl implements StudentService {
     @CacheEvict(value = "students", key = "#id")
     @Transactional
     public void deleteStudent(Long id) {
+
         log.info("Deleting student with id: {}", id);
         Student existingStudent = findStudentById(id);
 
@@ -336,10 +360,7 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public void deleteProfileImage(Long studentId) {
 
-        log.info(
-                "Deleting profile image for student id: {}",
-                studentId
-        );
+        log.info("Deleting profile image for student id: {}", studentId);
 
         // 1. Find student
         Student student = findStudentById(studentId);
@@ -365,7 +386,7 @@ public class StudentServiceImpl implements StudentService {
 
     // HELPER METHODS===================================================================================================
 
-    // Helper method to find student
+    // FIND STUDENT
     public Student findStudentById(Long id) {
 
         log.debug("Searching for student with id: {}", id);
@@ -378,10 +399,28 @@ public class StudentServiceImpl implements StudentService {
                 });
     }
 
-    // Helper method to find department
+    // FIND DEPARTMENT
     private Department findDepartmentById(Long id) {
         return departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found : " + id));
+    }
+
+    private Set<Course> resolveCourses(Set<Long> courseIds) {
+        Set<Course> courses = new HashSet<>(courseRepository.findAllById(courseIds));
+        if (courses.size() != courseIds.size()) {
+            throw new ResourceNotFoundException("One or more course ids do not exist: " + courseIds);
+        }
+        return courses;
+    }
+
+    private Address toAddress(StudentRequestDto dto) {
+        return Address.builder()
+                .street(dto.getStreet())
+                .city(dto.getCity())
+                .state(dto.getState())
+                .pincode(dto.getPincode())
+                .country(dto.getCountry())
+                .build();
     }
 
     // Helper method: DTO → Entity
@@ -393,6 +432,7 @@ public class StudentServiceImpl implements StudentService {
                 .email(studentRequestDto.getEmail())
                 .phoneNumber(studentRequestDto.getPhoneNumber())
                 .dateOfBirth(studentRequestDto.getDateOfBirth())
+                .address(toAddress(studentRequestDto))
                 .build();
     }
 
@@ -407,6 +447,9 @@ public class StudentServiceImpl implements StudentService {
             profileImageUrl = "/api/v1/students/" + student.getId() + "/profile-image";
         }
 
+        Address address = student.getAddress();
+        Department department = student.getDepartment();
+
         return StudentResponseDto.builder()
                 .id(student.getId())
                 .firstName(student.getFirstName())
@@ -415,10 +458,18 @@ public class StudentServiceImpl implements StudentService {
                 .phoneNumber(student.getPhoneNumber())
                 .dateOfBirth(student.getDateOfBirth())
                 .profileImageUrl(profileImageUrl)
+                .street(address == null ? null : address.getStreet())
+                .city(address == null ? null : address.getCity())
+                .state(address == null ? null : address.getState())
+                .pincode(address == null ? null : address.getPincode())
+                .country(address == null ? null : address.getCountry())
+                .departmentId(department == null ? null : department.getId())
+                .departmentName(department == null ? null : department.getName())
+                .courseTitles(student.getCourses() == null
+                        ? Set.of()
+                        : student.getCourses().stream().map(Course::getTitle).collect(Collectors.toSet()))
                 .build();
     }
-
-
 
 }
 

@@ -12,8 +12,22 @@ import com.example.sms.repository.StudentRepository;
 import com.example.sms.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * Departments change rarely but are read on almost every student/course
+ * request, so they're a good first candidate for caching:
+ * - getAllDepartments() / getDepartmentById(): cached, served from Redis
+ *   after the first call.
+ * - create/update/delete: evict the cache so the next read rebuilds it
+ *   from the database rather than serving stale data.
+ */
+
 
 @Slf4j
 @Service
@@ -25,10 +39,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     private final StudentRepository  studentRepository;
     private final CourseRepository courseRepository;
 
+    // value = CACHE_NAME -> value specifies the name of the cache where Spring will store the result.
+    private static final String CACHE_NAME = "departments";
 
     // CREATE
     @Override
     @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public DepartmentResponseDto createDepartment(DepartmentRequestDto departmentRequestDto) {
 
         log.info("Creating department with code: {}", departmentRequestDto.getCode());
@@ -48,14 +65,27 @@ public class DepartmentServiceImpl implements DepartmentService {
 
         Department saved = departmentRepository.save(departmentBuild);
 
+        log.info("Department created with id: {}", saved.getId());
         return entityToDto(saved);
+    }
+
+
+    // GET ALL
+    @Override
+    @Cacheable(value = CACHE_NAME, key = "'all'")
+    public List<DepartmentResponseDto> getAllDepartments() {
+        log.debug("Fetching all departments from DB (cache miss if you see this log)");
+        return departmentRepository.findAll().stream()
+                .map(this::entityToDto)
+                .toList();
     }
 
 
     // GET BY ID
     @Override
+    @Cacheable(value = CACHE_NAME, key = "#id")
     public DepartmentResponseDto getDepartmentById(Long id) {
-        log.info("Getting department with id: {}", id);
+        log.debug("Fetching department with id: {} (cache miss if you see this log)", id);
         return entityToDto(findDepartmentById(id));
     }
 
@@ -63,6 +93,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     // UPDATE
     @Override
     @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public DepartmentResponseDto updateDepartment(Long id, DepartmentRequestDto departmentRequestDto) {
         log.info("Updating department with ID: {}", id);
 
@@ -79,12 +110,15 @@ public class DepartmentServiceImpl implements DepartmentService {
         department.setCode(departmentRequestDto.getCode().trim().toUpperCase());
         department.setDescription(departmentRequestDto.getDescription());
 
-        return entityToDto(departmentRepository.save(department));
+        Department updated = departmentRepository.save(department);
+        log.info("Department with id {} updated", updated.getId());
+        return entityToDto(updated);
     }
 
 
     // DELETE
     @Override
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public void deleteDepartment(Long id) {
 
         log.info("Deleting department with ID: {}", id);
@@ -98,7 +132,11 @@ public class DepartmentServiceImpl implements DepartmentService {
             throw new ConflictException("Cannot delete department: it still has courses");
         }
 
+        // cascade = ALL + orphanRemoval on Department.courses means every
+        // course under this department is deleted along with it.
         departmentRepository.delete(department);
+
+        log.info("Department with id {} deleted (its courses cascaded)", id);
     }
 
 
@@ -111,12 +149,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     // entity -> dto
-    private DepartmentResponseDto entityToDto(Department d) {
+    private DepartmentResponseDto entityToDto(Department department) {
         return DepartmentResponseDto.builder()
-                .id(d.getId())
-                .name(d.getName())
-                .code(d.getCode())
-                .description(d.getDescription())
+                .id(department.getId())
+                .name(department.getName())
+                .code(department.getCode())
+                .description(department.getDescription())
+                .courseCount(department.getCourses() == null ? 0 : department.getCourses().size())
                 .build();
     }
 }

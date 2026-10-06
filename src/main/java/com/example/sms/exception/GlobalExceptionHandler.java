@@ -59,6 +59,18 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CourseFullException.class)
+    public ResponseEntity<ErrorResponse> handleCourseFull(CourseFullException ex, HttpServletRequest request) {
+        log.error("Course full: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request,null);
+    }
+
+    @ExceptionHandler(InvalidRequestStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidState(InvalidRequestStateException ex,  HttpServletRequest request) {
+        log.error("Invalid request state: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request,null);
+    }
+
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflictException(
             ConflictException exception,

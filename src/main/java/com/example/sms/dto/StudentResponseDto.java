@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -21,4 +22,15 @@ public class StudentResponseDto {
     private String phoneNumber;
     private LocalDate dateOfBirth;
     private String profileImageUrl;
+
+    private String street;
+    private String city;
+    private String state;
+    private String pincode;
+    private String country;
+
+    private Long departmentId;
+    private String departmentName;
+
+    private Set<String> courseTitles;
 }

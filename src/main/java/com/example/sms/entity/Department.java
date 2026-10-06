@@ -2,6 +2,7 @@ package com.example.sms.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,12 +13,8 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Department extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
     private String name;
@@ -34,7 +31,7 @@ public class Department extends BaseEntity {
     private Set<Student> students = new HashSet<>();
 
     // One Department -> Many Courses (owning side is Course.department)
-    @OneToMany(mappedBy = "department")
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Course> courses = new HashSet<>();
 }

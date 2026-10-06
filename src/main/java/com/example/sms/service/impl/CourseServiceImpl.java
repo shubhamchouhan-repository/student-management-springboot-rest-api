@@ -14,8 +14,12 @@ import com.example.sms.repository.StudentRepository;
 import com.example.sms.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -27,10 +31,12 @@ public class CourseServiceImpl implements CourseService {
     private final DepartmentRepository departmentRepository;
     private final StudentRepository studentRepository;
 
+    private static final String CACHE_NAME = "courses";
 
     // CREATE
     @Override
     @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public CourseResponseDto createCourse(CourseRequestDto courseRequestDto) {
 
         log.info("Creating course with code: {}", courseRequestDto.getCourseCode());
@@ -46,17 +52,31 @@ public class CourseServiceImpl implements CourseService {
                 .description(courseRequestDto.getDescription())
                 .credits(courseRequestDto.getCredits())
                 .department(findDepartmentById(courseRequestDto.getDepartmentId()))
+                .capacity(courseRequestDto.getCapacity())
                 .build();
 
         Course saved = courseRepository.save(courseBuild);
+        log.info("Course created with id: {}", saved.getId());
         return entityToDto(saved);
+    }
+
+
+    // GET ALL
+    @Override
+    @Cacheable(value = CACHE_NAME, key = "'all'")
+    public List<CourseResponseDto> getAllCourses() {
+        log.debug("Fetching all courses from DB (cache miss if you see this log)");
+        return courseRepository.findAll().stream()
+                .map(this::entityToDto)
+                .toList();
     }
 
 
     // GET BY ID
     @Override
+    @Cacheable(value = CACHE_NAME, key = "#id")
     public CourseResponseDto getCourseById(Long id) {
-        log.info("Getting course with id: {}", id);
+        log.debug("Fetching course with id: {} (cache miss if you see this log)", id);
         Course courseById = findCourseById(id);
         return entityToDto(courseById);
     }
@@ -65,6 +85,7 @@ public class CourseServiceImpl implements CourseService {
     // UPDATE
     @Override
     @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public CourseResponseDto updateCourse(Long id, CourseRequestDto courseRequestDto) {
         log.info("Updating course with ID: {}", id);
 
@@ -80,14 +101,20 @@ public class CourseServiceImpl implements CourseService {
         course.setDescription(courseRequestDto.getDescription());
         course.setCredits(courseRequestDto.getCredits());
         course.setDepartment(findDepartmentById(courseRequestDto.getDepartmentId()));
+        course.setCapacity(courseRequestDto.getCapacity());
+        // enrolledCount is deliberately NOT updated here — it only ever
+        // changes inside EnrollmentRequestServiceImpl.approve()
 
-        return entityToDto(courseRepository.save(course));
+        Course updated = courseRepository.save(course);
+        log.info("Course with id {} updated", updated.getId());
+        return entityToDto(updated);
     }
 
 
     // DELETE
     @Override
     @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public void deleteCourse(Long id) {
         log.info("Deleting course with ID: {}", id);
 
@@ -102,7 +129,8 @@ public class CourseServiceImpl implements CourseService {
     }
 
 
-    // HELPER
+    // HELPERS ---------------------------------------------------------------------------------------------------------
+
     // FIND COURSE
     private Course findCourseById(Long id) {
         return courseRepository.findById(id)
@@ -117,19 +145,22 @@ public class CourseServiceImpl implements CourseService {
     }
 
     // entity to dto
-    private CourseResponseDto entityToDto(Course c) {
-        Department d = c.getDepartment();
+    private CourseResponseDto entityToDto(Course course) {
+        Department department = course.getDepartment();
+
         return CourseResponseDto.builder()
-                .id(c.getId())
-                .courseCode(c.getCourseCode())
-                .title(c.getTitle())
-                .description(c.getDescription())
-                .credits(c.getCredits())
+                .id(course.getId())
+                .courseCode(course.getCourseCode())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .credits(course.getCredits())
                 .department(DepartmentSummaryDto.builder()
-                        .id(d.getId())
-                        .name(d.getName())
-                        .code(d.getCode())
+                        .id(department.getId())
+                        .name(department.getName())
+                        .code(department.getCode())
                         .build())
+                .capacity(course.getCapacity())
+                .enrolledCount(course.getEnrolledCount())
                 .build();
     }
 }
